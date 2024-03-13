@@ -78,12 +78,13 @@ public class MainActivity extends AppCompatActivity {
       // loading serialized torchscript module from packaged into app android asset model.pt,
       // app/src/model/assets/model.pt
 
-      // cpu
+      // cpu -- uncomment one of these
+      // for a pytorch test
       // module = Module.load(assetFilePath(this, "dummy_model.ptl"));
       // module = Module.load(assetFilePath(this, "dummy_model_quantized.ptl"));
-      // module = Module.load(assetFilePath(this, "dummy_model_resnet.ptl"));
-      // module = Module.load(assetFilePath(this, "dummy_model_resnet.ptl"));
-      // module = Module.load(assetFilePath(this, "dummy_model_densenet_nnapi.ptl"));
+     //  module = Module.load(assetFilePath(this, "dummy_model_resnet.ptl"));
+     //  module = Module.load(assetFilePath(this, "dummy_model_resnet.ptl"));
+     //  module = Module.load(assetFilePath(this, "dummy_model_densenet_nnapi.ptl"));
 
       // onnx - not working yet
       // OrtSession.SessionOptions session_options = new OrtSession.SessionOptions();
@@ -107,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
 
     int mcIt = 50;
     // Run PyTorch
-    // float [] softmaxScores = runPytorchInference(bitmap, module, mcIt)
+    // float [] softmaxScores = runPytorchInference(bitmap, module, mcIt);
 
     // Run TFlite
     float [] softmaxScores = runTFInference(bitmap, mcIt);
@@ -268,8 +269,8 @@ public class MainActivity extends AppCompatActivity {
     Interpreter.Options options = new Interpreter.Options();
 
     // Use NNAPI
-    NnApiDelegate nnApiDelegate = new NnApiDelegate();
-    options.addDelegate(nnApiDelegate);
+//    NnApiDelegate nnApiDelegate = new NnApiDelegate();
+//    options.addDelegate(nnApiDelegate);
 
     // Use GPU, comment if CPU wanted
 //    CompatibilityList compatList = new CompatibilityList();
@@ -278,7 +279,7 @@ public class MainActivity extends AppCompatActivity {
 //    options.addDelegate(gpuDelegate);
 
     // USE CPU, comment if GPU wanted
-//    options.setNumThreads(Runtime.getRuntime().availableProcessors());
+    options.setNumThreads(Runtime.getRuntime().availableProcessors());
 
     return new Interpreter(loadModelFile(this, modelPath), options);
   }

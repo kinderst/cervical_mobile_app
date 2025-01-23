@@ -93,8 +93,6 @@ public class MainActivity extends AppCompatActivity {
 //      bitmap = Bitmap.createScaledBitmap(bitmapOrig, 256, 256, false);
 //      Resizing can cause slight error, so I just load in image pre-resized
       bitmapTensor = normalizeImage(bitmap);
-//      float[][][] bitmapChannels = transformBitmap(bitmap);
-//      bitmap = convertBackToBitmap(bitmapChannels);
 
       // loading serialized torchscript module from packaged into app android asset model.pt,
       // app/src/model/assets/model.pt

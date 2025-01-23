@@ -87,8 +87,6 @@ public class MainActivity extends AppCompatActivity {
       bitmap = BitmapFactory.decodeStream(getAssets().open("small_541_image.png"));
 //      float[][][] bitmapChannels = transformBitmap(bitmapOrig);
 //      bitmapOrig = convertBackToBitmap(bitmapChannels);
-      // Crop image with bounding box coordinate
-//      bitmap = Bitmap.createBitmap(bitmap, 708, 64, 1322, 1719);
       // Resize image
 //      bitmap = Bitmap.createScaledBitmap(bitmapOrig, 256, 256, false);
 //      Resizing can cause slight error, so I just load in image pre-resized

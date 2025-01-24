@@ -53,6 +53,7 @@ import org.tensorflow.lite.gpu.CompatibilityList;
 import org.tensorflow.lite.gpu.GpuDelegate;
 import org.tensorflow.lite.flex.FlexDelegate;
 
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -77,19 +78,15 @@ public class MainActivity extends AppCompatActivity {
     Bitmap bitmapOrig = null;
     Bitmap bitmap = null;
     Tensor bitmapTensor = null;
-    Bitmap bitmapChw = null;
     Module module = null;
-//    long start = System.currentTimeMillis();
 
     try {
       // creating bitmap from packaged into app android asset 'image.jpg',
       // app/src/main/assets/image.jpg
       bitmap = BitmapFactory.decodeStream(getAssets().open("small_541_image.png"));
-//      float[][][] bitmapChannels = transformBitmap(bitmapOrig);
-//      bitmapOrig = convertBackToBitmap(bitmapChannels);
       // Resize image
-//      bitmap = Bitmap.createScaledBitmap(bitmapOrig, 256, 256, false);
-//      Resizing can cause slight error, so I just load in image pre-resized
+      // bitmap = Bitmap.createScaledBitmap(bitmapOrig, 256, 256, false);
+      // Resizing can cause slight error, so I just load in image pre-resized
       bitmapTensor = normalizeImage(bitmap);
 
       // loading serialized torchscript module from packaged into app android asset model.pt,
@@ -120,14 +117,12 @@ public class MainActivity extends AppCompatActivity {
     imageView.setImageBitmap(bitmap);
 
     int mcIt = 0;
-    Log.d("DebugStuff", "hmm: starting");
     // Run PyTorch
     long start = System.currentTimeMillis();
     float[] softmaxScores = runPytorchInference(bitmapTensor, module, mcIt);
     long end = System.currentTimeMillis();
     long elapsedTime = (end - start);
     Log.d("DebugStuff", "end: " + elapsedTime);
-    Log.d("DebugStuff", "hmm: " + Arrays.toString(softmaxScores));
 
     // Run TFlite
 //    long start = System.currentTimeMillis();
@@ -225,68 +220,6 @@ public class MainActivity extends AppCompatActivity {
     return Tensor.fromBlob(floatArray, shape);
   }
 
-  public static float[][][] transformBitmap(Bitmap originalBitmap) {
-    int width = originalBitmap.getWidth();
-    int height = originalBitmap.getHeight();
-    int[] pixels = new int[width * height];
-
-    // Get all pixels
-    originalBitmap.getPixels(pixels, 0, width, 0, 0, width, height);
-
-    // Create array with desired format [channel][height][width]
-    float[][][] transformed = new float[4][height][width];  // 4 channels: R,G,B,A
-
-    for (int h = 0; h < height; h++) {
-      for (int w = 0; w < width; w++) {
-        int pixel = pixels[h * width + w];
-
-        // Extract channels (0-255)
-        transformed[0][h][w] = Color.red(pixel);    // R channel
-        transformed[1][h][w] = Color.green(pixel);  // G channel
-        transformed[2][h][w] = Color.blue(pixel);   // B channel
-        transformed[3][h][w] = Color.alpha(pixel);  // A channel
-
-        // Normalize to 0-1 range if needed
-        // transformed[0][h][w] /= 255.0f;
-        // transformed[1][h][w] /= 255.0f;
-        // transformed[2][h][w] /= 255.0f;
-        // transformed[3][h][w] /= 255.0f;
-      }
-    }
-
-    return transformed;
-  }
-
-
-  public static Bitmap convertBackToBitmap(float[][][] transformed) {
-    int height = transformed[0].length;
-    int width = transformed[0][0].length;
-
-    Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-
-    for (int h = 0; h < height; h++) {
-      for (int w = 0; w < width; w++) {
-        // Denormalize if values are in 0-1 range
-        // int red = (int)(transformed[0][h][w] * 255);
-        // int green = (int)(transformed[1][h][w] * 255);
-        // int blue = (int)(transformed[2][h][w] * 255);
-        // int alpha = (int)(transformed[3][h][w] * 255);
-
-        int red = (int)transformed[0][h][w];
-        int green = (int)transformed[1][h][w];
-        int blue = (int)transformed[2][h][w];
-        int alpha = (int)transformed[3][h][w];
-
-        int pixel = Color.argb(alpha, red, green, blue);
-        bitmap.setPixel(w, h, pixel);
-      }
-    }
-
-    return bitmap;
-  }
-
-
-
   private float [] runTFInference(Bitmap bitmapIn, int mcIt) {
     Interpreter interpreter = null;
 
@@ -319,10 +252,7 @@ public class MainActivity extends AppCompatActivity {
     int[] myArr = {nBatches, 3, 256, 256};
     interpreter.resizeInput(0, myArr);
     interpreter.run(byteBuffer, result);
-    Log.d("DebugStuff", "HIT!!");
 //    interpreter.run(byteBuffer.getBuffer(), probabilityBuffer.getBuffer());
-    Log.d("DebugStuff", "hmm: " + Arrays.toString(result[0]));
-
     float[] softmaxScores = new float[nOutputNeurons];
 
     if (mcIt > 0) {
@@ -345,14 +275,47 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private float [] runPytorchInference(Tensor bitmap, Module module, int mcIt) {
-    // preparing input tensor
-//    final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(bitmap,
-//            MEANNULL, STDONE);
+    // final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(bitmap, MEANNULL, STDONE);
     IValue inputs = IValue.from(bitmap);
     final Map<String, IValue> allOutputs = module.forward(inputs).toDictStringKey();
+    // On example image:
+    // Should be: [logits, last_hidden_state, pred_boxes, encoder_last_hidden_state]
     Log.d("DebugStuff", allOutputs.keySet().toString());
+    // Should be: [0.5416793, 0.52205426, 0.8862307, 0.8713725, 0.6067072, ...]
     Log.d("DebugStuff", "bboxes:  " + Arrays.toString(allOutputs.get("pred_boxes").toTensor().getDataAsFloatArray()));
+    // Should be: [[1.7486051, -2.0011644, 2.0146627, -2.3535793, 1.8714539, ...]
     Log.d("DebugStuff", "logits:  " + Arrays.toString(allOutputs.get("logits").toTensor().getDataAsFloatArray()));
+
+    // Define target sizes if needed (height, width pairs)
+    // In the example case, we just use 256 the entire way
+    // If the original image was 1024x1000 hw, it would be {1024,1000}
+    // the 2d shape of the array comes from the fact it can handle batch
+    // in this case only one item in batch
+    int[][] targetSizes = new int[][]{{256, 256}};
+
+    // Process the detections
+    float threshold = 0.0f;
+    List<ObjectDetectionPostProcessor.DetectionResult> results = ObjectDetectionPostProcessor.postProcessObjectDetection(
+                allOutputs, threshold, targetSizes);
+
+    // Access the results
+    float[] scores = null;
+    long[] labels = null;
+    float[][] boxes = null;
+    int[] boxesOut = null;
+    for (ObjectDetectionPostProcessor.DetectionResult result : results) {
+      scores = result.scores;
+      labels = result.labels;
+      boxes = result.boxes;
+      boxesOut = ObjectDetectionPostProcessor.getBestBoundingBox(result, 256, 256);
+    }
+    Log.d("DebugStuff", "scores:  " + Arrays.toString(scores));
+    Log.d("DebugStuff", "labels:  " + Arrays.toString(labels));
+    for (int i = 0; i < boxes.length; i++) {
+      Log.d("DebugStuff", String.format("Box %d: [%.2f, %.2f, %.2f, %.2f]",
+              i, boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]));
+    }
+    Log.d("DebugStuff", "boxes out:  " + Arrays.toString(boxesOut));
 
     final int nOutputNeurons = 3;
     float[] softmaxScores = new float[nOutputNeurons];
@@ -379,6 +342,7 @@ public class MainActivity extends AppCompatActivity {
 
     return softmaxScores;
   }
+
 
   // Stores as C,H,W. To do H,W,C, see original GitHub code
   private ByteBuffer convertBitmapToByteBuffer(Bitmap bitmap, int nBatchSize) {

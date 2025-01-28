@@ -7,6 +7,11 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.renderscript.Allocation;
+import android.renderscript.Element;
+import android.renderscript.RenderScript;
+import android.renderscript.ScriptIntrinsicResize;
+import android.renderscript.Type;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -83,9 +88,9 @@ public class MainActivity extends AppCompatActivity {
     try {
       // creating bitmap from packaged into app android asset 'image.jpg',
       // app/src/main/assets/image.jpg
-      bitmap = BitmapFactory.decodeStream(getAssets().open("small_541_image.png"));
+      bitmap = BitmapFactory.decodeStream(getAssets().open("hpv16_ind_2_bicubic_resized.png"));
       // Resize image
-      // bitmap = Bitmap.createScaledBitmap(bitmapOrig, 256, 256, false);
+//       bitmap = Bitmap.createScaledBitmap(bitmap, 336, 480, true);
       // Resizing can cause slight error, so I just load in image pre-resized
       bitmapTensor = normalizeImage(bitmap);
 
@@ -291,7 +296,7 @@ public class MainActivity extends AppCompatActivity {
     // If the original image was 1024x1000 hw, it would be {1024,1000}
     // the 2d shape of the array comes from the fact it can handle batch
     // in this case only one item in batch
-    int[][] targetSizes = new int[][]{{256, 256}};
+    int[][] targetSizes = new int[][]{{2880, 2016}};
 
     // Process the detections
     float threshold = 0.0f;
@@ -307,7 +312,7 @@ public class MainActivity extends AppCompatActivity {
       scores = result.scores;
       labels = result.labels;
       boxes = result.boxes;
-      boxesOut = ObjectDetectionPostProcessor.getBestBoundingBox(result, 256, 256);
+      boxesOut = ObjectDetectionPostProcessor.getBestBoundingBox(result, targetSizes[0][1], targetSizes[0][0]);
     }
     Log.d("DebugStuff", "scores:  " + Arrays.toString(scores));
     Log.d("DebugStuff", "labels:  " + Arrays.toString(labels));

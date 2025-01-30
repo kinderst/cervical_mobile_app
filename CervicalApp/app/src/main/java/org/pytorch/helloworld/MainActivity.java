@@ -22,6 +22,7 @@ import org.checkerframework.common.value.qual.IntVal;
 import org.pytorch.IValue;
 import org.pytorch.Module;
 import org.pytorch.Tensor;
+//import org.pytorch.torchvision.TensorImageUtils
 import org.pytorch.torchvision.TensorImageUtils;
 import org.tensorflow.lite.nnapi.NnApiDelegate;
 import org.tensorflow.lite.HexagonDelegate;
@@ -88,7 +89,9 @@ public class MainActivity extends AppCompatActivity {
     try {
       // creating bitmap from packaged into app android asset 'image.jpg',
       // app/src/main/assets/image.jpg
-      bitmap = BitmapFactory.decodeStream(getAssets().open("hpv16_ind_2_bicubic_resized.png"));
+      bitmapOrig = BitmapFactory.decodeStream(getAssets().open("hpv16_ind_2_png.png"));
+      TensorImage bitmapTensorImage = convertBitmapToTensorImageAndResize(bitmapOrig, 480, 336);
+      bitmap = bitmapTensorImage.getBitmap();
       // Resize image
 //       bitmap = Bitmap.createScaledBitmap(bitmap, 336, 480, true);
       // Resizing can cause slight error, so I just load in image pre-resized
@@ -203,6 +206,9 @@ public class MainActivity extends AppCompatActivity {
       float r = ((pixel >> 16) & 0xFF) / 255.0f;
       float g = ((pixel >> 8) & 0xFF) / 255.0f;
       float b = (pixel & 0xFF) / 255.0f;
+      if (i < 10) {
+        Log.d("DebugStuff", String.format("BEFORE Pixel %d: R=%.5f, G=%.5f, B=%.5f", i, r, g, b));
+      }
 
       // Apply normalization
       r = (r - IMAGENET_MEAN[0]) / IMAGENET_STD[0];
@@ -216,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
 
       // Debug first few pixels
       if (i < 10) {
-        Log.d("DebugStuff", String.format("Pixel %d: R=%.5f, G=%.5f, B=%.5f", i, r, g, b));
+        Log.d("DebugStuff", String.format("AFTER Pixel %d: R=%.5f, G=%.5f, B=%.5f", i, r, g, b));
       }
     }
 
@@ -398,31 +404,31 @@ public class MainActivity extends AppCompatActivity {
   }
 
 //   Stores as C,H,W. To do H,W,C, see original GitHub code
-//  private TensorImage convertBitmapToByteBuffer(Bitmap bitmap) {
-//    // Initialization code
-//    // Create an ImageProcessor with all ops required. For more ops, please
-//    // refer to the ImageProcessor Architecture section in this README.
+  private TensorImage convertBitmapToTensorImageAndResize(Bitmap bitmap, int height, int width) {
+    // Initialization code
+    // Create an ImageProcessor with all ops required. For more ops, please
+    // refer to the ImageProcessor Architecture section in this README.
     ImageProcessor imageProcessor =
             new ImageProcessor.Builder()
-                    .add(new ResizeOp(256, 256, ResizeOp.ResizeMethod.BILINEAR))
-                    .add(new NormalizeOp(0, 255))
+                    .add(new ResizeOp(height, width, ResizeOp.ResizeMethod.BILINEAR))
+//                    .add(new NormalizeOp(0, 255))
                     .build();
 
 
 //  imageProcessor.Builder();
-//
-//    // Create a TensorImage object. This creates the tensor of the corresponding
-//    // tensor type (uint8 in this case) that the LiteRT interpreter needs.
-//    TensorImage tensorImage = new TensorImage(DataType.FLOAT32);
-//
-//    // Analysis code for every frame
-//    // Preprocess the image
-//    tensorImage.load(bitmap);
-//    tensorImage = imageProcessor.process(tensorImage);
-//    Log.d("DebugStuff", "BEFORE RETURN");
-//
-//    return tensorImage;
-//  }
+
+    // Create a TensorImage object. This creates the tensor of the corresponding
+    // tensor type (uint8 in this case) that the LiteRT interpreter needs.
+    TensorImage tensorImage = new TensorImage(DataType.UINT8);
+
+    // Analysis code for every frame
+    // Preprocess the image
+    tensorImage.load(bitmap);
+    tensorImage = imageProcessor.process(tensorImage);
+    Log.d("DebugStuff", "BEFORE RETURN");
+
+    return tensorImage;
+  }
 
   private MappedByteBuffer loadModelFile(Context context, String modelPath) throws IOException {
     AssetFileDescriptor fileDescriptor = context.getAssets().openFd(modelPath);

@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
     try {
       // creating bitmap from packaged into app android asset 'image.jpg',
       // app/src/main/assets/image.jpg
-      bitmapOrig = BitmapFactory.decodeStream(getAssets().open("hpv16_ind_2_png.png"));
+      bitmapOrig = BitmapFactory.decodeStream(getAssets().open("hpv16_norm_2.jpg"));
       TensorImage bitmapTensorImage = convertBitmapToTensorImageAndResize(bitmapOrig, 480, 336);
       bitmap = bitmapTensorImage.getBitmap();
       // Resize image
